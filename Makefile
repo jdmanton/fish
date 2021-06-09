@@ -17,7 +17,7 @@ fish_LIBS = fish tiff jpeg lzma z fftw3_omp fftw3 m X11
 
 LIB = libfish.a
 
-libfish.a_SRCS = io.cpp misc.cpp rotate.cpp scale.cpp translate.cpp tinytiffwriter.cpp
+libfish.a_SRCS = intensify.cpp io.cpp misc.cpp rotate.cpp scale.cpp translate.cpp tinytiffwriter.cpp
 libfish.a_LIBS = fftw3_omp fftw3 m
 
 include magick.mk

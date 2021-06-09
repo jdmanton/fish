@@ -1,5 +1,25 @@
 #include "fish.h"
 
+int intensify(int argc, char*argv[]) {
+	cimg_help("\nIntensify image by factor");
+	
+	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
+	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
+	const float scale = cimg_option("-s", 1.0, "scaling factor");
+	const char* method = cimg_option("-m", "binom", "method [binom, coin]");
+	const bool display =   cimg_option("-d", false, "display intensified image\n");
+	if (!file_img || !file_out) {return 1;}
+
+	CImg<> img = fish::load_tiff(file_img);
+	img = fish::intensify(img, scale, method);
+	fish::save_tiff(img, file_out, 0, 0);
+
+	if (display) {
+		img.display("Intensified image", false);
+	}
+	return 0;
+}
+
 
 int rotate(int argc, char*argv[]) {
 	cimg_help("\nRotate image by angle");
@@ -90,6 +110,8 @@ int main(int argc, char* argv[]) {
 
 	if (!strcmp(argv[1], "-h")) {
 		main(1, argv);
+	} else if (!strcmp(argv[1], "intensify")) {
+		return intensify(argc, argv);
 	} else if (!strcmp(argv[1], "rotate")) {
 		return rotate(argc, argv);
 	} else if (!strcmp(argv[1], "show")) {

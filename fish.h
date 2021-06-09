@@ -3,8 +3,8 @@ using namespace cimg_library;
 
 namespace fish {
 	CImg<> affine(const CImg<> &raw, const float affmat[16]);
-	CImg<> intensify(const CImg<> &raw, const float scale);
-	CImg<> rotate(const CImg<> &raw, const float angle);
+	CImg<> intensify(const CImg<> &raw, const float scale, const char* method);
+	CImg<> rotate(const CImg<> &raw, const float angle, const char* method);
 	CImg<> scale(const CImg<> &raw, const float pin, const float pout);
 	CImg<> translate(const CImg<> &raw, const float x_shift, const float y_shift, const char* method);
 	CImg<> load_tiff(const char* filename);
