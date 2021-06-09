@@ -7,11 +7,12 @@ int rotate(int argc, char*argv[]) {
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float angle = cimg_option("-a", 45.0, "rotation angle (degrees)");
+	const char* method = cimg_option("-m", "coord", "method [coord, nn]");
 	const bool display =   cimg_option("-d", false, "display rotated image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
-	img = fish::rotate(img, angle);
+	img = fish::rotate(img, angle, method);
 	fish::save_tiff(img, file_out, 0, 0);
 
 	if (display) {
