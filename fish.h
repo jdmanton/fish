@@ -9,4 +9,5 @@ namespace fish {
 	CImg<> translate(const CImg<> &raw, const float x_shift, const float y_shift, const char* method);
 	CImg<> load_tiff(const char* filename);
 	void save_tiff(CImg<> &img, const char* filename, float pitch_xy, float spacing_z);
+	bool check_bounds(const CImg<> &img, int x, int y);
 }

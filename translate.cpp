@@ -1,4 +1,5 @@
 #include "CImg.h"
+#include "fish.h"
 #include <random>
 #include <cassert>
 
@@ -26,11 +27,6 @@ namespace fish{
 		return translated;
 	}
 
-
-	bool check_bounds(const CImg<> &img, int x, int y) {
-		return (x >= 0 && x < img.width() && y >= 0 && y < img.height()) ? true : false;
-	}
-
 	
 	CImg<> translate_binom(const CImg<> &raw, const float shift_x, const float shift_y) {
 		CImg<> translated(raw.width(), raw.height(), 1, 1, 0);
@@ -56,9 +52,9 @@ namespace fish{
 			int further_x = x + ceil(shift_x);
 			int further_y = y + ceil(shift_y);			
 			translated(x, y) += nxny;
-			if (check_bounds(raw, 0, further_y)) translated(x, further_y) += nxfy;
-			if (check_bounds(raw, further_x, 0)) translated(further_x, y) += fxny;
-			if (check_bounds(raw, further_x, further_y)) translated(further_x, further_y) += fxfy;
+			if (fish::check_bounds(raw, 0, further_y)) translated(x, further_y) += nxfy;
+			if (fish::check_bounds(raw, further_x, 0)) translated(further_x, y) += fxny;
+			if (fish::check_bounds(raw, further_x, further_y)) translated(further_x, further_y) += fxfy;
 		}
 
 		return translated;
