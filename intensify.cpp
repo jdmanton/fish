@@ -45,27 +45,15 @@ namespace fish{
 	}
 
 
-	CImg<> intensify_coin(const CImg<> &raw, const float scale) {
-		return raw;
-	}
-
-
 	CImg<> intensify(const CImg<> &raw, const float scale, const char* method) {
 		CImg<> intensified;
 
 		int start_time = cimg::time();
-		printf("\nIntensifying image using ");
-		if (!strcmp(method, "nn")) {
-			printf("coin flip method...");
-			fflush(stdout);
-			intensified = intensify_coin(raw, scale);
-		} else {
-			printf("binomial method...");
-			fflush(stdout);
-			intensified = intensify_binom(raw, scale);
-		}
-		int rotation_time = cimg::time() - start_time;
-		printf(" (completed in %d ms)\n", rotation_time);
+		printf("\nIntensifying image using binomial method...");
+		fflush(stdout);
+		intensified = intensify_binom(raw, scale);
+		int intensification_time = cimg::time() - start_time;
+		printf(" (completed in %d ms)\n", intensification_time);
 
 		return intensified;
 	}
