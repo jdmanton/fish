@@ -21,6 +21,26 @@ int intensify(int argc, char*argv[]) {
 }
 
 
+int poissonify(int argc, char* argv[]) {
+	cimg_help("\nAdd Poisson noise to image");
+	
+	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
+	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
+	const float scale = cimg_option("-s", 1.0, "pre-scaling factor");
+	const bool display =   cimg_option("-d", false, "display Poissonified image\n");
+	if (!file_img || !file_out) {return 1;}
+
+	CImg<> img = fish::load_tiff(file_img);
+	img = fish::poissonify(img, scale);
+	fish::save_tiff(img, file_out, 0, 0);
+
+	if (display) {
+		img.display("Poissonified image", false);
+	}
+	return 0;
+}
+
+
 int rotate(int argc, char*argv[]) {
 	cimg_help("\nRotate image by angle");
 	
@@ -101,6 +121,7 @@ int main(int argc, char* argv[]) {
 			   "  show\n"
 			   "  affine\n"
 			   "  intensify\n"
+			   "  poissonify\n"
 			   "  rotate\n"
 			   "  scale\n"
 			   "  translate\n"
@@ -112,6 +133,8 @@ int main(int argc, char* argv[]) {
 		main(1, argv);
 	} else if (!strcmp(argv[1], "intensify")) {
 		return intensify(argc, argv);
+	} else if (!strcmp(argv[1], "poissonify")) {
+		return poissonify(argc, argv);
 	} else if (!strcmp(argv[1], "rotate")) {
 		return rotate(argc, argv);
 	} else if (!strcmp(argv[1], "show")) {
