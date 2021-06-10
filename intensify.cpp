@@ -21,7 +21,10 @@ namespace fish{
 		CImg<> intensified(raw.width(), raw.height(), 1, 1, 0);
 		std::default_random_engine generator;
 
-		if (scale > 1.0) {
+		if (scale < 1.0) {
+			printf("\nScale < 1.0 not supported. Please use dim instead.\n");
+			exit(1);
+		} else {
 			cimg_forXY(raw, x, y) {
 				// Maximise N over plausible range
 				int photon_num = raw(x, y);
@@ -33,19 +36,13 @@ namespace fish{
 				std::poisson_distribution<> pdist(max_N);
 				intensified(x, y) = pdist(generator);
 			}
-		} else {
-			cimg_forXY(raw, x, y) {
-				int photon_num = raw(x, y);
-				std::binomial_distribution<> ddist(photon_num, scale);
-				intensified(x, y) = ddist(generator);
-			}
 		}
 		
 		return intensified;
 	}
 
 
-	CImg<> intensify(const CImg<> &raw, const float scale, const char* method) {
+	CImg<> intensify(const CImg<> &raw, const float scale) {
 		CImg<> intensified;
 
 		int start_time = cimg::time();

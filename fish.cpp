@@ -1,17 +1,36 @@
 #include "fish.h"
 
+int dim(int argc, char*argv[]) {
+	cimg_help("\nDim image by factor");
+	
+	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
+	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
+	const float scale = cimg_option("-s", 1.0, "scaling factor");
+	const bool display =   cimg_option("-d", false, "display dimmed image\n");
+	if (!file_img || !file_out) {return 1;}
+
+	CImg<> img = fish::load_tiff(file_img);
+	img = fish::dim(img, scale);
+	fish::save_tiff(img, file_out, 0, 0);
+
+	if (display) {
+		img.display("Dimmed image", false);
+	}
+	return 0;
+}
+
+
 int intensify(int argc, char*argv[]) {
 	cimg_help("\nIntensify image by factor");
 	
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float scale = cimg_option("-s", 1.0, "scaling factor");
-	const char* method = cimg_option("-m", "binom", "method [binom, coin]");
 	const bool display =   cimg_option("-d", false, "display intensified image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
-	img = fish::intensify(img, scale, method);
+	img = fish::intensify(img, scale);
 	fish::save_tiff(img, file_out, 0, 0);
 
 	if (display) {
@@ -119,6 +138,7 @@ int main(int argc, char* argv[]) {
 		printf("\nfish [command] [options] \n\n"
 			   "Use one of the following commands:\n"
 			   "  show\n"
+			   "  dim\n"
 			   "  affine\n"
 			   "  intensify\n"
 			   "  poissonify\n"
@@ -131,6 +151,8 @@ int main(int argc, char* argv[]) {
 
 	if (!strcmp(argv[1], "-h")) {
 		main(1, argv);
+	} else if (!strcmp(argv[1], "dim")) {
+		return dim(argc, argv);
 	} else if (!strcmp(argv[1], "intensify")) {
 		return intensify(argc, argv);
 	} else if (!strcmp(argv[1], "poissonify")) {
