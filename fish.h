@@ -6,6 +6,7 @@ namespace fish {
 	CImg<> dim(const CImg<> &raw, const float scale);
 	CImg<> intensify(const CImg<> &raw, const float scale);
 	CImg<> poissonify(const CImg<> &raw, const float scale);
+	CImg<> rebin(const CImg<> &raw, const int scale, const char* direction);
 	CImg<> rotate(const CImg<> &raw, const float angle, const char* method);
 	CImg<> scale(const CImg<> &raw, const float pin, const float pout);
 	CImg<> translate(const CImg<> &raw, const float x_shift, const float y_shift, const char* method);
