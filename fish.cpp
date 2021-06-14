@@ -6,7 +6,7 @@ int dim(int argc, char*argv[]) {
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float scale = cimg_option("-s", 1.0, "scaling factor");
-	const bool display =   cimg_option("-d", false, "display dimmed image\n");
+	const bool display =   cimg_option("-display", false, "display dimmed image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
@@ -26,7 +26,7 @@ int intensify(int argc, char*argv[]) {
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float scale = cimg_option("-s", 1.0, "scaling factor");
-	const bool display =   cimg_option("-d", false, "display intensified image\n");
+	const bool display =   cimg_option("-display", false, "display intensified image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
@@ -46,7 +46,7 @@ int poissonify(int argc, char* argv[]) {
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float scale = cimg_option("-s", 1.0, "pre-scaling factor");
-	const bool display =   cimg_option("-d", false, "display Poissonified image\n");
+	const bool display =   cimg_option("-display", false, "display Poissonified image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
@@ -67,7 +67,7 @@ int rotate(int argc, char*argv[]) {
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float angle = cimg_option("-a", 45.0, "rotation angle (degrees)");
 	const char* method = cimg_option("-m", "coord", "method [coord, nn]");
-	const bool display =   cimg_option("-d", false, "display rotated image\n");
+	const bool display =   cimg_option("-display", false, "display rotated image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
@@ -88,7 +88,7 @@ int scale(int argc, char*argv[]) {
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const float pin = cimg_option("-pi", 0.0, "pixel pitch in");
 	const float pout = cimg_option("-po", 0.0, "pixel pitch out");
-	const bool display =   cimg_option("-d", false, "display rescaled image\n");
+	const bool display =   cimg_option("-display", false, "display rescaled image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
@@ -110,7 +110,7 @@ int translate(int argc, char*argv[]) {
 	const float shift_x = cimg_option("-x", 0.0, "shift in x");
 	const float shift_y = cimg_option("-y", 0.0, "shift in y");
 	const char* method = cimg_option("-m", "coord", "method [coord, binomial]");
-	const bool display =   cimg_option("-d", false, "display translated image\n");
+	const bool display =   cimg_option("-display", false, "display translated image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
