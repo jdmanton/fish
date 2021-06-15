@@ -341,6 +341,74 @@ namespace fish{
 	}
 
 
+	CImg<> rebin_james2(const CImg<> &raw, const int scale) {
+		CImg<> weights = fish::rebin_fourier(raw, scale).round();
+		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
+
+		std::default_random_engine generator;
+
+		cimg_forXY(raw, x, y) {
+			int num_photons = raw(x, y);
+			std::vector<int> weight_vec(scale * scale);
+
+			for (int i = 0; i < scale * scale; i++) {
+				int xb = i % scale;
+				int yb = i / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				weight_vec[i] = weights(xs, ys);
+			}
+			
+			std::discrete_distribution<int> ddist(weight_vec.begin(), weight_vec.end());
+			
+			for (int i = 0; i < num_photons; i++) {
+				int ind = ddist(generator);
+				int xb = ind % scale;
+				int yb = ind / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				scaled(xs, ys) += 1;
+			}
+		}
+
+		return scaled;    
+	}
+
+
+	CImg<> rebin_james3(const CImg<> &raw, const int scale) {
+		CImg<> weights = fish::rebin_sjoerd(raw, scale).round();
+		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
+
+		std::default_random_engine generator;
+
+		cimg_forXY(raw, x, y) {
+			int num_photons = raw(x, y);
+			std::vector<int> weight_vec(scale * scale);
+
+			for (int i = 0; i < scale * scale; i++) {
+				int xb = i % scale;
+				int yb = i / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				weight_vec[i] = weights(xs, ys);
+			}
+			
+			std::discrete_distribution<int> ddist(weight_vec.begin(), weight_vec.end());
+			
+			for (int i = 0; i < num_photons; i++) {
+				int ind = ddist(generator);
+				int xb = ind % scale;
+				int yb = ind / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				scaled(xs, ys) += 1;
+			}
+		}
+
+		return scaled;    
+	}
+
+
 	CImg<> rebin(const CImg<> &raw, const int scale, const char* direction) {
 		CImg<> rebinned;
 
@@ -370,6 +438,12 @@ namespace fish{
 		} else if (!strcmp(direction, "james")) {
 			printf(" up, using james method, by %d...", scale);
 			rebinned = rebin_james(raw, scale);
+		} else if (!strcmp(direction, "james2")) {
+			printf(" up, using james2 method, by %d...", scale);
+			rebinned = rebin_james2(raw, scale);
+		} else if (!strcmp(direction, "james3")) {
+			printf(" up, using james3 method, by %d...", scale);
+			rebinned = rebin_james3(raw, scale);
 		} else {
 			printf(" with direction '%s' not supported.", direction);
 			exit(1);
