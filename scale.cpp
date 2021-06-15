@@ -8,7 +8,7 @@ namespace fish{
 		float scale = pin / pout;
 		int new_width = ceil(scale * raw.width());
 		int new_height = ceil(scale * raw.height());
-		CImg<> scaled(new_width, new_height, 1, 1, 0); // why is this a CImg<float>?
+		CImg<> scaled(new_width, new_height, 1, 1, 0);
 
 		printf("Scaled size:   %d x %d (scale factor = %f)\n", new_width, new_height, scale);
 
@@ -24,10 +24,6 @@ namespace fish{
 				// We need to cast x, y to doubles to avoid rounding errors later leading to segfaults
 				double px = ((double) x + randx) * scale;
 				double py = ((double) y + randy) * scale;
-				if (floor(px) < 0 || floor(py) < 0 || floor(px) > (new_width - 1) || floor(py) > (new_height - 1)) {
-					printf("Out of bounds! x = %d, y = %d, px = %f, py = %f, floor(px) = %d, floor(py) = %d, randx = %f, randy = %f\n", x, y, px, py, (int) floor(px), (int) floor(py), randx, randy);
-					fflush(stdout);
-				}
 				scaled(floor(px), floor(py)) += 1;
 			}
 		}
