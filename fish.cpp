@@ -20,6 +20,45 @@ int dim(int argc, char*argv[]) {
 }
 
 
+int error(int argc, char*argv[]) {
+	cimg_help("\nCalculate error between estimated error and ground truth");
+	
+	const char * file_est = cimg_option("-e", (char*) 0, "estimated image file");
+	const char * file_truth = cimg_option("-t", (char*) 0, "ground truth image file");
+	const char* method = cimg_option("-m", (char*) "rmse", "method\n");
+	if (!file_est || !file_truth) {return 1;}
+
+	CImg<> est = fish::load_tiff(file_est);
+	CImg<> truth = fish::load_tiff(file_truth);
+	double error = fish::error(est, truth, method);
+	printf("Calculated error: %f\n", error);
+
+	return 0;
+}
+
+
+int error_map(int argc, char*argv[]) {
+	cimg_help("\nCalculate error between estimated error and ground truth");
+	
+	const char * file_est = cimg_option("-e", (char*) 0, "estimated image file");
+	const char * file_truth = cimg_option("-t", (char*) 0, "ground truth image file");
+	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
+	const char* method = cimg_option("-m", (char*) "diff", "method\n");
+	const bool display =   cimg_option("-display", false, "display error map\n");
+	if (!file_est || !file_truth) {return 1;}
+
+	CImg<> est = fish::load_tiff(file_est);
+	CImg<> truth = fish::load_tiff(file_truth);
+	CImg<> error = fish::error_map(est, truth, method);
+	fish::save_tiff(error, file_out, 0, 0);
+
+	if (display) {
+		error.display("Error map", false);
+	}
+	return 0;
+}
+
+
 int intensify(int argc, char*argv[]) {
 	cimg_help("\nIntensify image by factor");
 	
@@ -174,6 +213,10 @@ int main(int argc, char* argv[]) {
 		main(1, argv);
 	} else if (!strcmp(argv[1], "dim")) {
 		return dim(argc, argv);
+	} else if (!strcmp(argv[1], "error")) {
+		return error(argc, argv);
+	} else if (!strcmp(argv[1], "error_map")) {
+		return error_map(argc, argv);
 	} else if (!strcmp(argv[1], "intensify")) {
 		return intensify(argc, argv);
 	} else if (!strcmp(argv[1], "poissonify")) {
