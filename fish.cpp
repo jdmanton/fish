@@ -162,6 +162,25 @@ int scale(int argc, char*argv[]) {
 }
 
 
+int split(int argc, char*argv[]) {
+	cimg_help("\nSplit counts in image into two images");
+	
+	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
+	const char * file_out1 = cimg_option("-o1", (char*) 0, "output image file 1");
+	const char * file_out2 = cimg_option("-o2", (char*) 0, "output image file 2");
+	const float p1 = cimg_option("-p1", 0.0, "probability of assigning to image 1");
+	if (!file_img || !file_out1 || !file_out2) {return 1;}
+
+	printf("Doing stuff\n");
+	CImg<> img = fish::load_tiff(file_img);
+	CImgList<> split_images = fish::split(img, p1);
+	fish::save_tiff(split_images[0], file_out1, 0, 0);
+	fish::save_tiff(split_images[1], file_out2, 0, 0);
+
+	return 0;
+}
+
+
 int translate(int argc, char*argv[]) {
 	cimg_help("\nTranslate image with sub-pixel precision");
 	
@@ -229,6 +248,8 @@ int main(int argc, char* argv[]) {
 		return show(argc, argv);
 	} else if (!strcmp(argv[1], "scale")) {
 		return scale(argc, argv);
+	} else if (!strcmp(argv[1], "split")) {
+		return split(argc, argv);
 	} else if (!strcmp(argv[1], "translate")) {
 		return translate(argc, argv);
 	} else {
