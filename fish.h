@@ -7,7 +7,8 @@ namespace fish {
 	CImg<> error_map(const CImg<> &est, const CImg<> truth, const char* method);
 	CImg<> intensify(const CImg<> &raw, const float scale);
 	CImg<> poissonify(const CImg<> &raw, const float scale);
-	CImg<> rebin(const CImg<> &raw, const int scale, const char* direction);
+	CImg<> rebin(const CImg<> &raw, const int scale, const char* method);
+	CImg<> rebin_rl(const CImg<> &raw, const int scale, const CImg<> &psf, const int num_iters);
 	CImg<> rotate(const CImg<> &raw, const float angle, const char* method);
 	CImg<> scale(const CImg<> &raw, const float pin, const float pout);
 	CImgList<> split(const CImg<> &raw, const float p1);

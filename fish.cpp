@@ -105,12 +105,35 @@ int rebin(int argc, char* argv[]) {
 	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
 	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
 	const int scale = cimg_option("-s", 2, "scaling factor");
-	const char* direction = cimg_option("-d", (char*) 0, "direction [up, down]");
+	const char* direction = cimg_option("-m", (char*) 0, "method [down, up_nn, up_fourier, up_fourier_poisson, up_thin_nn, up_thin_fourier, up_thin_fourier_poisson]");
 	const bool display =   cimg_option("-display", false, "display rebinned image\n");
 	if (!file_img || !file_out) {return 1;}
 
 	CImg<> img = fish::load_tiff(file_img);
 	img = fish::rebin(img, scale, direction);
+	fish::save_tiff(img, file_out, 0, 0);
+
+	if (display) {
+		img.display("Rebinned image", false);
+	}
+	return 0;
+}
+
+
+int rebin_rl(int argc, char* argv[]) {
+	cimg_help("\nRebin image with new pixels, using a modified Richardson-Lucy deconvolution for weights");
+	
+	const char * file_img = cimg_option("-i", (char*) 0, "input image file");
+	const char * file_psf = cimg_option("-p", (char*) 0, "PSF image file");
+	const char * file_out = cimg_option("-o", (char*) 0, "output image file");
+	const int scale = cimg_option("-s", 2, "scaling factor");
+	const int num_iters = cimg_option("-n", 10, "number of iterations");
+	const bool display =   cimg_option("-display", false, "display rebinned image\n");
+	if (!file_img || !file_out || !file_psf) {return 1;}
+
+	CImg<> img = fish::load_tiff(file_img);
+	CImg<> psf = fish::load_tiff(file_psf);
+	img = fish::rebin_rl(img, scale, psf, num_iters);
 	fish::save_tiff(img, file_out, 0, 0);
 
 	if (display) {
@@ -242,6 +265,8 @@ int main(int argc, char* argv[]) {
 		return poissonify(argc, argv);
 	} else if (!strcmp(argv[1], "rebin")) {
 		return rebin(argc, argv);
+	} else if (!strcmp(argv[1], "rebin_rl")) {
+		return rebin_rl(argc, argv);
 	} else if (!strcmp(argv[1], "rotate")) {
 		return rotate(argc, argv);
 	} else if (!strcmp(argv[1], "show")) {

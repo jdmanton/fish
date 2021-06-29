@@ -3,33 +3,37 @@
 #include <random>
 #include <cassert>
 #include <vector>
+#include <iostream>
 
 using namespace cimg_library;
 
-namespace fish{
-	CImg<> rebin_up(const CImg<> &raw, const int scale) {
-		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
 
-		std::default_random_engine generator;
-		std::uniform_int_distribution<int> ddist(1, scale * scale);
-
-		cimg_forXY(raw, x, y) {
-			int photon_num = raw(x, y);
-			for (int i = 0; i < photon_num; i++) {
-				int bin = ddist(generator);
-				int ind = bin - 1;
-				int yb = ind / scale;
-				int xb = bin % scale;
-				int xs = x * scale + xb;
-				int ys = y * scale + yb;
-				scaled(xs, ys) += 1;
-			}
+CImgList<> psf2otf(const CImg<>& psf, const int width, const int height, const int depth) {
+	int x_max_ind = 0, y_max_ind = 0, z_max_ind = 0;
+	double v_max = 0, sum = 0;
+	cimg_forXYZ(psf, x, y, z) {
+		const double v = psf(x, y, z);
+		sum += v;
+		if (v > v_max) {
+			v_max = v;
+			x_max_ind = x;
+			y_max_ind = y;
+			z_max_ind = z;
 		}
-
-		return scaled;
 	}
+	CImg<> h(width, height, depth, 1, 0);
+	const int
+		x0 = cimg::round((float) width / 2.0f - (float) x_max_ind),
+		y0 = cimg::round((float) width / 2.0f - (float) y_max_ind),
+		z0 = depth == 1 ? 0 : round((float) depth / 2.0f - (float) z_max_ind);
+	h.draw_image(x0, y0, z0, psf);
+	h = h / (float) sum;
+	h.shift(width / 2, height / 2, depth / 2, 0, 2);
+	return h.get_FFT();
+}
 
 
+namespace fish{
 	CImg<> rebin_down(const CImg<> &raw, const int scale) {
 		CImg<> scaled(raw.width() / scale, raw.height() / scale, 1, 1, 0);
 
@@ -56,149 +60,7 @@ namespace fish{
 	}
 
 
-	CImg<> rebin_condense(const CImg<> &raw, const int scale) {
-		// 1. Collect together all the photons and throw them across the upscaled image
-		// 2. Use the original image to work out which areas have too few/many photons
-		// 3. Redistribute the photons in too bright areas to dim areas
-
-		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
-
-		std::default_random_engine generator;
-
-		// Step 1
-		int total_photons = raw.sum();
-		std::uniform_int_distribution<int> ddist(0, scaled.width() * scaled.height() - 1);
-		for (int i = 0; i < total_photons; i++) {
-			int ind = ddist(generator);
-			int xb = ind % scaled.width();
-			int yb = ind / scaled.height();
-			scaled(xb, yb) += 1;
-		}
-
-		// Step 2
-		CImg<> errors = fish::rebin_down(scaled, scale) - raw;
-		std::vector<int> deficiencies_x;
-		std::vector<int> deficiencies_y;
-		std::vector<int> deficiencies_n;
-		cimg_forXY(errors, x, y) {
-			if (errors(x, y) < 0) {
-				deficiencies_x.push_back(x);
-				deficiencies_y.push_back(y);
-				deficiencies_n.push_back(-errors(x, y));
-			}
-		}
-		cimg_forXY(errors, x, y) {
-			if (errors(x, y) <= 0) {
-				continue;
-			} else {
-				int photon_num = errors(x, y);
-				for (int i = 0; i < photon_num; i++) {
-					// printf("%d pixels left to fill.\n", deficiencies_n.size());
-					std::uniform_int_distribution<int> ddist(0, deficiencies_n.size() - 1);
-					int ind = ddist(generator);
-					deficiencies_n[ind] -= 1;
-
-					int nx = deficiencies_x[ind];
-					int ny = deficiencies_y[ind];
-					
-					std::uniform_int_distribution<int> pdist(0, scale - 1);
-					
-					int del_x = scale * x + pdist(generator);
-					int del_y = scale * y + pdist(generator);
-					int add_x = scale * nx + pdist(generator);
-					int add_y = scale * ny + pdist(generator);
-					
-					// printf("Moving photon from (%d, %d) to (%d, %d).\n", del_x, del_y, add_x, add_y);
-
-					scaled(del_x, del_y) -= 1;
-					scaled(add_x, add_y) += 1;
-
-					if (deficiencies_n[ind] == 0) {
-						deficiencies_n.erase(deficiencies_n.begin() + ind);
-						deficiencies_x.erase(deficiencies_x.begin() + ind);
-						deficiencies_y.erase(deficiencies_y.begin() + ind);
-					}
-				}
-			}
-		}
-
-		return scaled;
-	}
-
-
-	CImg<> rebin_condense2(const CImg<> &raw, const int scale) {
-		// 1. Collect together all the photons and throw them across the upscaled image
-		// 2. Use the original image to work out which areas have too few/many photons
-		// 3. Redistribute the photons in too bright areas to dim areas
-
-		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
-
-		std::default_random_engine generator;
-
-		// Step 1
-		int total_photons = raw.sum();
-		std::uniform_int_distribution<int> ddist(0, scaled.width() * scaled.height() - 1);
-		for (int i = 0; i < total_photons; i++) {
-			int ind = ddist(generator);
-			int xb = ind % scaled.width();
-			int yb = ind / scaled.height();
-			scaled(xb, yb) += 1;
-		}
-
-		// Step 2
-		CImg<> errors = fish::rebin_down(scaled, scale) - raw;
-		std::vector<int> deficiencies_x;
-		std::vector<int> deficiencies_y;
-		std::vector<int> extras_x;
-		std::vector<int> extras_y;
-		int num_to_fix = 0;
-		cimg_forXY(errors, x, y) {
-			if (errors(x, y) < 0) {
-				for (int i = 0; i < -errors(x, y); i++) {
-					deficiencies_x.push_back(x);
-					deficiencies_y.push_back(y);
-				}
-			} else if (errors(x, y) > 0) {
-				for (int i = 0; i < errors(x, y); i++) {
-					extras_x.push_back(x);
-					extras_y.push_back(y);
-					++num_to_fix;
-				}
-			}
-		}
-
-		for (int i = 0; i < num_to_fix; i++) {
-			std::uniform_int_distribution<int> edist(0, extras_x.size() - 1);
-			int e_ind = edist(generator);
-			std::uniform_int_distribution<int> ddist(0, deficiencies_x.size() - 1);
-			int d_ind = ddist(generator);
-
-			std::uniform_int_distribution<int> pdist(0, scale - 1);
-					
-			int del_x = scale * extras_x[e_ind] + pdist(generator);
-			int del_y = scale * extras_y[e_ind] + pdist(generator);
-			int add_x = scale * deficiencies_x[d_ind] + pdist(generator);
-			int add_y = scale * deficiencies_y[d_ind] + pdist(generator);
-			
-			// printf("Moving photon from (%d, %d) to (%d, %d).\n", del_x, del_y, add_x, add_y);
-			// fflush(stdout);
-
-			scaled(del_x, del_y) -= 1;
-			scaled(add_x, add_y) += 1;
-			// printf("Photon reassignment complete.\n");
-			// fflush(stdout);
-
-			extras_x.erase(extras_x.begin() + e_ind);
-			extras_y.erase(extras_y.begin() + e_ind);
-			deficiencies_x.erase(deficiencies_x.begin() + d_ind);
-			deficiencies_y.erase(deficiencies_y.begin() + d_ind);
-		}
-
-		return scaled;
-	}
-
-
-	CImg<> rebin_fourier(const CImg<> &raw, const int scale) {
+	CImg<> rebin_up_fourier(const CImg<> &raw, const int scale) {
 		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
 		
 		// FT and fftshift
@@ -225,7 +87,7 @@ namespace fish{
 	}
 
 
-	CImg<> rebin_sjoerd(const CImg<> &raw, const int scale) {
+	CImg<> rebin_up_fourier_poisson(const CImg<> &raw, const int scale) {
 		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
 		
 		// FT and fftshift
@@ -270,182 +132,161 @@ namespace fish{
 	}
 
 	
-	CImg<> rebin_james(const CImg<> &raw, const int scale) {
-		CImg<> scaled = fish::rebin_sjoerd(raw, scale);
+	CImg<> rebin_up_weighted(const CImg<> &raw, const CImg<> &weights, const int scale) {
+		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
 
-		int excess_photons = round(scaled.sum() - raw.sum());
-		printf("raw.sum() = %f, scaled.sum() = %f, excess_photons = %d\n", raw.sum(), scaled.sum(), excess_photons);
 		std::default_random_engine generator;
-		std::uniform_int_distribution<int> ddist(0, abs(excess_photons));
-		if (excess_photons != 0) {
-			printf("Altering photon number...\n");
-			int inc = (excess_photons < 0) ? 1 : -1;
-			for (int i = 0; i < abs(excess_photons); i++) {
+
+		cimg_forXY(raw, x, y) {
+			int num_photons = raw(x, y);
+			std::vector<float> weight_vec(scale * scale);
+
+			for (int i = 0; i < scale * scale; i++) {
+				int xb = i % scale;
+				int yb = i / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				weight_vec[i] = weights(xs, ys);
+			}
+			
+			std::discrete_distribution<int> ddist(weight_vec.begin(), weight_vec.end());
+			
+			for (int i = 0; i < num_photons; i++) {
 				int ind = ddist(generator);
-				scaled(ind) += inc;
-			}
-		}
-		
-		CImg<> errors = fish::rebin_down(scaled, scale) - raw;
-		std::vector<int> deficiencies_x;
-		std::vector<int> deficiencies_y;
-		std::vector<int> deficiencies_n;
-		cimg_forXY(errors, x, y) {
-			if (errors(x, y) < 0) {
-				deficiencies_x.push_back(x);
-				deficiencies_y.push_back(y);
-				deficiencies_n.push_back(-errors(x, y));
-			}
-		}
-		cimg_forXY(errors, x, y) {
-			if (errors(x, y) < 0) {
-				continue;
-			} else {
-				int photon_num = errors(x, y);
-				for (int i = 0; i < photon_num; i++) {
-					// printf("%d pixels left to fill.\n", deficiencies_n.size());
-					if (deficiencies_n.size() <= 0) {
-						break;
-					}
-					std::uniform_int_distribution<int> ddist(0, deficiencies_n.size() - 1);
-					int ind = ddist(generator);
-					deficiencies_n[ind] -= 1;
-
-					int nx = deficiencies_x[ind];
-					int ny = deficiencies_y[ind];
-					
-					std::uniform_int_distribution<int> udist(0, scale - 1);
-					
-					int del_x = scale * x + udist(generator);
-					int del_y = scale * y + udist(generator);
-					int add_x = scale * nx + udist(generator);
-					int add_y = scale * ny + udist(generator);
-					
-					// printf("Moving photon from (%d, %d) to (%d, %d).\n", del_x, del_y, add_x, add_y);
-
-					scaled(del_x, del_y) -= 1;
-					scaled(add_x, add_y) += 1;
-					// printf("Photon reassignment complete.\n");
-					// fflush(stdout);
-
-					if (deficiencies_n[ind] == 0) {
-						deficiencies_n.erase(deficiencies_n.begin() + ind);
-						deficiencies_x.erase(deficiencies_x.begin() + ind);
-						deficiencies_y.erase(deficiencies_y.begin() + ind);
-					}
-				}
+				int xb = ind % scale;
+				int yb = ind / scale;
+				int xs = x * scale + xb;
+				int ys = y * scale + yb;
+				scaled(xs, ys) += 1;
 			}
 		}
 
 		return scaled;
 	}
 
-
-	CImg<> rebin_james2(const CImg<> &raw, const int scale) {
-		CImg<> weights = fish::rebin_fourier(raw, scale).round();
+	
+	CImg<> rebin_up_thin_nn(const CImg<> &raw, const int scale) {
+		CImg<> weights = fish::rebin_up_nn(raw, scale).round();
 		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
-
-		std::default_random_engine generator;
-
-		cimg_forXY(raw, x, y) {
-			int num_photons = raw(x, y);
-			std::vector<int> weight_vec(scale * scale);
-
-			for (int i = 0; i < scale * scale; i++) {
-				int xb = i % scale;
-				int yb = i / scale;
-				int xs = x * scale + xb;
-				int ys = y * scale + yb;
-				weight_vec[i] = weights(xs, ys);
-			}
-			
-			std::discrete_distribution<int> ddist(weight_vec.begin(), weight_vec.end());
-			
-			for (int i = 0; i < num_photons; i++) {
-				int ind = ddist(generator);
-				int xb = ind % scale;
-				int yb = ind / scale;
-				int xs = x * scale + xb;
-				int ys = y * scale + yb;
-				scaled(xs, ys) += 1;
-			}
-		}
-
-		return scaled;    
+		
+		return fish::rebin_up_weighted(raw, weights, scale);;    
+	}
+	
+	
+	CImg<> rebin_up_thin_fourier(const CImg<> &raw, const int scale) {
+		CImg<> weights = fish::rebin_up_fourier(raw, scale).round();
+		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
+		
+		return fish::rebin_up_weighted(raw, weights, scale);;    
 	}
 
 
-	CImg<> rebin_james3(const CImg<> &raw, const int scale) {
-		CImg<> weights = fish::rebin_sjoerd(raw, scale).round();
+	CImg<> rebin_up_thin_fourier_poisson(const CImg<> &raw, const int scale) {
+		CImg<> weights = fish::rebin_up_fourier_poisson(raw, scale).round();
 		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
 
-		std::default_random_engine generator;
-
-		cimg_forXY(raw, x, y) {
-			int num_photons = raw(x, y);
-			std::vector<int> weight_vec(scale * scale);
-
-			for (int i = 0; i < scale * scale; i++) {
-				int xb = i % scale;
-				int yb = i / scale;
-				int xs = x * scale + xb;
-				int ys = y * scale + yb;
-				weight_vec[i] = weights(xs, ys);
-			}
-			
-			std::discrete_distribution<int> ddist(weight_vec.begin(), weight_vec.end());
-			
-			for (int i = 0; i < num_photons; i++) {
-				int ind = ddist(generator);
-				int xb = ind % scale;
-				int yb = ind / scale;
-				int xs = x * scale + xb;
-				int ys = y * scale + yb;
-				scaled(xs, ys) += 1;
-			}
-		}
-
-		return scaled;    
+		return fish::rebin_up_weighted(raw, weights, scale);;    
 	}
 
 
-	CImg<> rebin(const CImg<> &raw, const int scale, const char* direction) {
+	CImg<> rebin_rl(const CImg<> &raw, const int scale, const CImg<> &psf, const int num_iters) {
+		// Use a blurred RL deconvolution of the image to provide the weights for photon reassignment
+		
+		CImg<> scaled(raw.width() * scale, raw.height() * scale, 1, 1, 0);
+
+		const float eps = 1e-2;
+
+		CImgList<> H = psf2otf(psf, psf.width(), psf.height(), psf.depth());
+		CImgList<> H_unbinned = psf2otf(fish::rebin_up_nn(psf, scale), scale * psf.width(), scale * psf.height(), scale * psf.depth());
+
+		// CImg<> estimate = fish::rebin_up_nn(raw, scale).get_max(eps).blur(4.0f);
+		CImg<> estimate(scaled.width(), scaled.height(), 1, 1, raw.mean());
+		CImg<> estimate_binned;
+		CImgList<> temp(2, scaled.width(), scaled.height(), scaled.depth(), 1, 0);
+		CImgList<> temp_binned(2, raw.width(), raw.height(), raw.depth(), 1, 0);
+
+		
+
+		for (int i = 0; i < num_iters; i++) {
+			// Bin down
+			estimate_binned = fish::rebin_down(estimate, scale);
+			
+			// Convolve with PSF (Fourier-wise with H)
+			temp_binned = estimate_binned.get_FFT();
+			cimg_foroff(H[0], i) {
+				const float a = temp_binned[0](i), b = temp_binned[1](i), c = H[0](i), d = H[1](i);
+				temp_binned[0](i) = a*c - b*d;
+				temp_binned[1](i) = a*d + b*c;
+			}
+			temp_binned.FFT(true);
+			
+			// Compute ratio
+			cimg_foroff(temp_binned[0], i) {
+				if (temp_binned[0](i) > 0)
+					temp_binned[0](i) = std::max(eps, raw(i)) / temp_binned[0](i);
+				temp_binned[1](i) = 0;
+			}
+			
+			// Unbin
+			temp[0] = fish::rebin_up_nn(temp_binned[0], scale);
+			temp[1] = fish::rebin_up_nn(temp_binned[1], scale);
+			
+			// Convolve with transpose of PSF (Fourier-wise with H_unbinned)
+			// (at the moment there is no transpose, just conjugation, as we 'know' that the PSF is real)
+			temp.FFT();
+			cimg_foroff(temp[0], i) {
+				const float a = temp[0](i), b = temp[1](i), c = H_unbinned[0](i), d = -H_unbinned[1](i);
+				temp[0](i) = a*c - b*d;
+				temp[1](i) = a*d + b*c;
+			}
+			temp.FFT(true);
+			
+			// Update estimate via multiplication
+			estimate.mul(temp[0]);
+		}
+
+		// Reblur
+		temp = estimate.get_FFT();
+		cimg_foroff(temp[0], i) {
+			const float a = temp[0](i), b = temp[1](i), c = H_unbinned[0](i), d = -H_unbinned[1](i);
+			temp[0](i) = a*c - b*d;
+			temp[1](i) = a*d + b*c;
+		}
+		temp.FFT(true);
+		estimate = temp[0];
+
+		return fish::rebin_up_weighted(raw, estimate, scale);
+	}
+
+
+	CImg<> rebin(const CImg<> &raw, const int scale, const char* method) {
 		CImg<> rebinned;
 
 		int start_time = cimg::time();
 		printf("\nRebinning image");
-		if (!strcmp(direction, "down")) {
+		if (!strcmp(method, "down")) {
 			printf(" down by %d...", scale);
 			rebinned = rebin_down(raw, scale);
-		} else if (!strcmp(direction, "up")) {
-			printf(" up by %d...", scale);
-			rebinned = rebin_up(raw, scale);
-		} else if (!strcmp(direction, "up_nn")) {
+		} else if (!strcmp(method, "up_nn")) {
 			printf(" up_nn by %d...", scale);
 			rebinned = rebin_up_nn(raw, scale);
-		} else if (!strcmp(direction, "condense")) {
-			printf(" up, using condense method, by %d...", scale);
-			rebinned = rebin_condense(raw, scale);
-		} else if (!strcmp(direction, "condense2")) {
-			printf(" up, using condense2 method, by %d...", scale);
-			rebinned = rebin_condense2(raw, scale);
-		} else if (!strcmp(direction, "fourier")) {
+		} else if (!strcmp(method, "up_fourier")) {
 			printf(" up, using fourier method, by %d...", scale);
-			rebinned = rebin_fourier(raw, scale);
-		} else if (!strcmp(direction, "sjoerd")) {
-			printf(" up, using sjoerd method, by %d...", scale);
-			rebinned = rebin_sjoerd(raw, scale);
-		} else if (!strcmp(direction, "james")) {
-			printf(" up, using james method, by %d...", scale);
-			rebinned = rebin_james(raw, scale);
-		} else if (!strcmp(direction, "james2")) {
-			printf(" up, using james2 method, by %d...", scale);
-			rebinned = rebin_james2(raw, scale);
-		} else if (!strcmp(direction, "james3")) {
-			printf(" up, using james3 method, by %d...", scale);
-			rebinned = rebin_james3(raw, scale);
+			rebinned = rebin_up_fourier(raw, scale);
+		} else if (!strcmp(method, "up_fourier_poisson")) {
+			printf(" up, using fourier_poisson method, by %d...", scale);
+			rebinned = rebin_up_fourier_poisson(raw, scale);
+		} else if (!strcmp(method, "up_thin_nn")) {
+			printf(" up, using up_thin_nn method, by %d...", scale);
+			rebinned = rebin_up_thin_nn(raw, scale);
+		} else if (!strcmp(method, "up_thin_fourier")) {
+			printf(" up, using up_thin_fourier method, by %d...", scale);
+			rebinned = rebin_up_thin_fourier(raw, scale);
+		} else if (!strcmp(method, "up_thin_fourier_poisson")) {
+			printf(" up, using up_thin_fourier_poisson method, by %d...", scale);
+			rebinned = rebin_up_thin_fourier_poisson(raw, scale);
 		} else {
-			printf(" with direction '%s' not supported.", direction);
+			printf(" with method '%s' not supported.", method);
 			exit(1);
 		}
 		int rebinning_time = cimg::time() - start_time;
