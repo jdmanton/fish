@@ -248,7 +248,7 @@ namespace fish{
 		// Reblur
 		temp = estimate.get_FFT();
 		cimg_foroff(temp[0], i) {
-			const float a = temp[0](i), b = temp[1](i), c = H_unbinned[0](i), d = -H_unbinned[1](i);
+			const float a = temp[0](i), b = temp[1](i), c = H_unbinned[0](i), d = H_unbinned[1](i);
 			temp[0](i) = a*c - b*d;
 			temp[1](i) = a*d + b*c;
 		}
